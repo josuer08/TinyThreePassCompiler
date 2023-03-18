@@ -1,45 +1,131 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"golang.org/x/exp/slices"
+)
 
 type op int
 
 const (
-   imm op = iota
-   arg
-   plus
-   min
-   mul
-   div
+	imm op = iota
+	arg
+	plus
+	min
+	mul
+	div
 )
 
 type AST struct {
-   Op op
-   A  *AST
-   B  *AST
-   N  int
+	Op     op
+	Left   *AST
+	Right  *AST
+	Value  int
+	Parent *AST
 }
 
-
-
 func main() {
-    //a := &AST{Op: imm, N: 5}
-    //b := &AST{Op: plus, A: a, B: &AST{Op: arg, N: 0}}
-    input := "[ a b ] a*a + b*b"
-    value := []rune(input)
-    for index, char := range value {
-        //make a stack and start pusing the [] to identify the start of a function and its end
-        //also check on a *-+/ for starting new operations with the last value and the next
-        //or can be a ( which pushes last value to a stack and picks up a new "first value" for this operation and ) indicating that order of operation is finish and
-        //you should pull again the last value that you pushed
+	//a := &AST{Op: imm, N: 5
+	//b := &AST{Op: plus, A: a, B: &AST{Op: arg, N: 0}}
+	input := "[ a b ] a*a + b*b"
+	//value := []rune(input)
 
-        //found [ start registering args to a map
-        // variable inside [] add to map of variables
-        // found ] stop registering new variables for the map
-        // found variable put to stack
-        // found inmmediate number put to stack
-        // found operation activate operation mode and upon next variable or inmediate add to the structure
-        // found ( can push another variable to stack and increment the indent counter
-        // found ) if no operation mode (that would be an error) then add the operations to the structure and decrement the indnet counter
-    }
+	variables, program := extractVariables(input)
+
+	fmt.Println(variables, program)
+	var Tree AST
+	firstPass(program, &Tree)
+	//si es una letra y el stack esta sin setear pon en el A del stack un AST arg
+	//si es una operacion setea la op en el stack
+	//si es un abrir parentesis apunta al lado que este disponible del AST
+	//si es una letra y ya esta seteada la op mete un AST arg a la otra letra
+	//si es un cerrar parentesis coge para el pai.
+
+	//los numeros se portan justo como las letras.
+
+}
+
+func firstPass(variables, program []rune, node *AST) {
+	switch program[0] {
+	case '-':
+		node.Op = min
+		firstPass(variables, program[1:], node)
+	case '+':
+		node.Op = plus
+		firstPass(variables, program[1:], node)
+	case '*':
+		node.Op = mul
+		firstPass(variables, program[1:], node)
+	case '/':
+		node.Op = div
+		firstPass(variables, program[1:], node)
+	case '(':
+		if node.Left != nil {
+			firstPass(variables, program[1:], node.Left)
+		} else {
+			firstPass(variables, program[1:], node.Right)
+		}
+	case ')':
+		return
+
+	default:
+		if program[0] > 47 && program[0] < 58 {
+			var zeroOp op
+			if node.Op == zeroOp {
+				node.Left = &AST{Op: imm, Value: int(program[0]) - 48}
+				firstPass(variables, program[1:], node)
+				//a := &AST{Op: imm, N: 5
+			} else {
+				node.Right = &AST{Op: imm, Value: int(program[0]) - 48}
+				firstPass(variables, program[1:], node)
+			}
+		} else if slices.Contains(variables, program[0]) {
+			var zeroOp op
+			if node.Op == zeroOp {
+				node.Left = &AST{Op: imm, Value: int(program[0]) - 48}
+				firstPass(variables, program[1:], node)
+				//a := &AST{Op: imm, N: 5
+			} else {
+				node.Right = &AST{Op: imm, Value: int(program[0]) - 48}
+				firstPass(variables, program[1:], node)
+			}
+
+		}
+
+	}
+	return
+
+}
+
+// extractVariables receives the original program string and converts it in
+// two rune slices, the first containing the variables and a second containing
+// the trimmed program
+func extractVariables(input string) ([]rune, []rune) {
+	variables := strings.Split(input, "]")
+	// Cleaning out the variables that are gettting extracted
+	variables[0] = strings.Split(variables[0], "[")[1]
+	variables[0] = strings.Trim(variables[0], " ")
+	cleanVariables := []rune(variables[0])
+	var resultVariables []rune
+	for _, v := range cleanVariables {
+		if v != ' ' {
+			resultVariables = append(resultVariables, v)
+		}
+	}
+
+	//Cleaning out the program that is getting extracted
+	variables[1] = strings.Trim(variables[1], " ")
+	cleanProgram := []rune(variables[1])
+	var resultProgram []rune
+	for _, v := range cleanProgram {
+		if v != ' ' {
+			resultProgram = append(resultProgram, v)
+
+		}
+
+	}
+
+	return resultVariables, resultProgram
 }
