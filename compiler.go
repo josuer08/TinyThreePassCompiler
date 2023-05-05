@@ -29,7 +29,7 @@ type AST struct {
 func main() {
 	//a := &AST{Op: imm, N: 5
 	//b := &AST{Op: plus, A: a, B: &AST{Op: arg, N: 0}}
-	input := "[ a b ] (a*a) + (b*b)"
+	input := "[ a b ] (a*a) + (5*b)"
 	//value := []rune(input)
 
 	variables, program := extractVariables(input)
@@ -52,7 +52,8 @@ func main() {
 func printer(tree *AST) {
 	switch {
 	case tree.Op == imm:
-		fmt.Print(tree.Value - 48)
+		fmt.Print(tree.Value)
+		//fmt.Print(tree.Value - 48)
 	case tree.Op == arg:
 		fmt.Printf("%c", tree.Value)
 	default:
