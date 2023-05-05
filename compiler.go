@@ -29,8 +29,7 @@ type AST struct {
 func main() {
 	//a := &AST{Op: imm, N: 5
 	//b := &AST{Op: plus, A: a, B: &AST{Op: arg, N: 0}}
-	input := "[ a b ] (a*a) + (5*b)"
-	//value := []rune(input)
+	input := "[ a b ] (a*a) + (5*5)"
 
 	variables, program := extractVariables(input)
 
@@ -38,14 +37,8 @@ func main() {
 	Tree := AST{}
 	firstPass(variables, program, &Tree)
 	fmt.Println(Tree)
+	secondPass(&Tree)
 	printer(&Tree)
-	//si es una letra y el stack esta sin setear pon en el A del stack un AST arg
-	//si es una operacion setea la op en el stack
-	//si es un abrir parentesis apunta al lado que este disponible del AST
-	//si es una letra y ya esta seteada la op mete un AST arg a la otra letra
-	//si es un cerrar parentesis coge para el pai.
-
-	//los numeros se portan justo como las letras.
 
 }
 
@@ -53,7 +46,6 @@ func printer(tree *AST) {
 	switch {
 	case tree.Op == imm:
 		fmt.Print(tree.Value)
-		//fmt.Print(tree.Value - 48)
 	case tree.Op == arg:
 		fmt.Printf("%c", tree.Value)
 	default:
@@ -128,6 +120,37 @@ func firstPass(variables, program []rune, node *AST) {
 	}
 	return
 
+}
+func secondPass(node *AST) {
+	if node.Op == arg {
+		return
+	}
+	if node.Op == imm {
+		return
+	}
+	if node.Right.Op == imm && node.Left.Op == imm {
+
+		switch node.Op {
+		case min:
+			node.Value = node.Left.Value - node.Right.Value
+		case plus:
+			node.Value = node.Left.Value + node.Right.Value
+		case mul:
+			node.Value = node.Left.Value * node.Right.Value
+		case div:
+			node.Value = node.Left.Value / node.Right.Value
+		}
+		node.Op = imm
+		node.Left = nil
+		node.Right = nil
+		return
+	}
+	if node.Left.Op != arg && node.Left.Op != imm {
+		secondPass(node.Left)
+	}
+	if node.Right.Op != arg && node.Right.Op != imm {
+		secondPass(node.Right)
+	}
 }
 
 // extractVariables receives the original program string and converts it in
