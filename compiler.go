@@ -29,7 +29,8 @@ type AST struct {
 func main() {
 	//a := &AST{Op: imm, N: 5
 	//b := &AST{Op: plus, A: a, B: &AST{Op: arg, N: 0}}
-	input := "[ a b ] (a*a) + (5*5)"
+	input := "[ a b ] ((a*b) + (5*5))-3"
+	//input := "[ a b ] (a*a) + (5*5)"
 
 	variables, program := extractVariables(input)
 
@@ -38,6 +39,8 @@ func main() {
 	firstPass(variables, program, &Tree)
 	fmt.Println(Tree)
 	secondPass(&Tree)
+	slices.Sort(variables)
+	thirdPass(&Tree, variables)
 	printer(&Tree)
 
 }
@@ -69,6 +72,8 @@ func printer(tree *AST) {
 	}
 }
 
+// firstPass Is a function that makes the first pass of the compiler,
+// it converts the variable and program into an AST
 func firstPass(variables, program []rune, node *AST) {
 	pass := node
 	switch program[0] {
@@ -104,7 +109,7 @@ func firstPass(variables, program []rune, node *AST) {
 			}
 		} else if slices.Contains(variables, program[0]) {
 			//var zeroOp op
-			if node.Op != 2 && node.Op != 3 && node.Op != 4 && node.Op != 5 {
+			if node.Op != plus && node.Op != min && node.Op != mul && node.Op != div {
 				node.Left = &AST{Op: arg, Value: int(program[0])}
 				//a := &AST{Op: imm, N: 5
 			} else {
@@ -121,6 +126,9 @@ func firstPass(variables, program []rune, node *AST) {
 	return
 
 }
+
+// secondPass takes an AST and reduces the operations that only include imm
+// values so the program results in a more compact one with precalculated imms
 func secondPass(node *AST) {
 	if node.Op == arg {
 		return
@@ -151,6 +159,79 @@ func secondPass(node *AST) {
 	if node.Right.Op != arg && node.Right.Op != imm {
 		secondPass(node.Right)
 	}
+}
+
+func thirdPass(node *AST, variables []rune) {
+	/////////////////////////////////////////THINKING SPACE/////////////////////
+	//
+	//   If I am a imm I just load to R0
+	//   If I am an arg I just load to R0
+	//
+	//
+	//   If I am an operator then I put my answer to my father  on R0
+	//   If my left child is a imm or arg just call it and then SW
+	//   If my right child is a imm or arg just call it then SW then operate
+	//   If my left is an operand then call it(not sure about this one)
+	//   If my right is an operand PU then call it then SW then PO then SW
+	//   If i am an operand at the end always just operate AD MU DI SU
+	//
+	////////////////////////////////////////////////////////////////////////////
+	switch node.Op {
+	case arg:
+		number, found := slices.BinarySearch(variables, rune(node.Value))
+		if found {
+			fmt.Printf("AR %d\n", number)
+		}
+
+	case imm:
+		fmt.Printf("IM %d\n", node.Value)
+	default:
+		switch node.Left.Op {
+		case arg:
+			number, valid := slices.BinarySearch(variables, rune(node.Left.Value))
+			if valid {
+				fmt.Printf("AR %d\n", number)
+			}
+		case imm:
+			fmt.Printf("IM %d\n", node.Left.Value)
+		default:
+			thirdPass(node.Left, variables)
+		}
+
+		switch node.Right.Op {
+		case arg:
+			fmt.Println("SW")
+			number, valid := slices.BinarySearch(variables, rune(node.Right.Value))
+			if valid {
+				fmt.Printf("AR %d\n", number)
+			}
+			fmt.Println("SW")
+		case imm:
+			fmt.Println("SW")
+			fmt.Printf("IM %d\n", node.Right.Value)
+			fmt.Println("SW")
+		default:
+			fmt.Println("PU")
+			thirdPass(node.Right, variables)
+			fmt.Println("SW")
+			fmt.Println("PO")
+		}
+
+		//need to think about which kind of child nodes make me want to PU & PO
+		switch node.Op {
+		case mul:
+			fmt.Println("MU")
+		case div:
+			fmt.Println("DI")
+		case min:
+			fmt.Println("SU")
+		case plus:
+			fmt.Println("AD")
+
+		}
+
+	}
+
 }
 
 // extractVariables receives the original program string and converts it in
