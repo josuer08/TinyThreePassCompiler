@@ -27,24 +27,24 @@ type AST struct {
 }
 
 func main() {
-	//a := &AST{Op: imm, N: 5
-	//b := &AST{Op: plus, A: a, B: &AST{Op: arg, N: 0}}
+	//TODO(josuer08): Change this for a argv reader and all of the printing can
+	// be moved to writing to a file or just use standalone with redirection not
+	//quite sure about it.
 	input := "[ a b ] ((a*b) + (5*5))-3"
-	//input := "[ a b ] (a*a) + (5*5)"
 
 	variables, program := extractVariables(input)
-
-	fmt.Println(variables, program)
+	//fmt.Println(variables, program)
 	Tree := AST{}
 	firstPass(variables, program, &Tree)
-	fmt.Println(Tree)
+	//fmt.Println(Tree)
 	secondPass(&Tree)
 	slices.Sort(variables)
 	thirdPass(&Tree, variables)
-	printer(&Tree)
+	//printer(&Tree)
 
 }
 
+// printer si a function that prints in Reverse Pollish Notation the AST
 func printer(tree *AST) {
 	switch {
 	case tree.Op == imm:
@@ -103,28 +103,20 @@ func firstPass(variables, program []rune, node *AST) {
 			var zeroOp op
 			if node.Op == zeroOp {
 				node.Left = &AST{Op: imm, Value: int(program[0]) - 48}
-				//a := &AST{Op: imm, N: 5
 			} else {
 				node.Right = &AST{Op: imm, Value: int(program[0]) - 48}
 			}
 		} else if slices.Contains(variables, program[0]) {
-			//var zeroOp op
 			if node.Op != plus && node.Op != min && node.Op != mul && node.Op != div {
 				node.Left = &AST{Op: arg, Value: int(program[0])}
-				//a := &AST{Op: imm, N: 5
 			} else {
 				node.Right = &AST{Op: arg, Value: int(program[0])}
 			}
-
 		}
-
 	}
 	if len(program) > 1 {
 		firstPass(variables, program[1:], pass)
-
 	}
-	return
-
 }
 
 // secondPass takes an AST and reduces the operations that only include imm
@@ -137,7 +129,6 @@ func secondPass(node *AST) {
 		return
 	}
 	if node.Right.Op == imm && node.Left.Op == imm {
-
 		switch node.Op {
 		case min:
 			node.Value = node.Left.Value - node.Right.Value
@@ -162,27 +153,12 @@ func secondPass(node *AST) {
 }
 
 func thirdPass(node *AST, variables []rune) {
-	/////////////////////////////////////////THINKING SPACE/////////////////////
-	//
-	//   If I am a imm I just load to R0
-	//   If I am an arg I just load to R0
-	//
-	//
-	//   If I am an operator then I put my answer to my father  on R0
-	//   If my left child is a imm or arg just call it and then SW
-	//   If my right child is a imm or arg just call it then SW then operate
-	//   If my left is an operand then call it(not sure about this one)
-	//   If my right is an operand PU then call it then SW then PO then SW
-	//   If i am an operand at the end always just operate AD MU DI SU
-	//
-	////////////////////////////////////////////////////////////////////////////
 	switch node.Op {
 	case arg:
 		number, found := slices.BinarySearch(variables, rune(node.Value))
 		if found {
 			fmt.Printf("AR %d\n", number)
 		}
-
 	case imm:
 		fmt.Printf("IM %d\n", node.Value)
 	default:
@@ -197,7 +173,6 @@ func thirdPass(node *AST, variables []rune) {
 		default:
 			thirdPass(node.Left, variables)
 		}
-
 		switch node.Right.Op {
 		case arg:
 			fmt.Println("SW")
@@ -216,8 +191,6 @@ func thirdPass(node *AST, variables []rune) {
 			fmt.Println("SW")
 			fmt.Println("PO")
 		}
-
-		//need to think about which kind of child nodes make me want to PU & PO
 		switch node.Op {
 		case mul:
 			fmt.Println("MU")
@@ -249,7 +222,6 @@ func extractVariables(input string) ([]rune, []rune) {
 			resultVariables = append(resultVariables, v)
 		}
 	}
-
 	//Cleaning out the program that is getting extracted
 	variables[1] = strings.Trim(variables[1], " ")
 	cleanProgram := []rune(variables[1])
@@ -257,10 +229,7 @@ func extractVariables(input string) ([]rune, []rune) {
 	for _, v := range cleanProgram {
 		if v != ' ' {
 			resultProgram = append(resultProgram, v)
-
 		}
-
 	}
-
 	return resultVariables, resultProgram
 }
